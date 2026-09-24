@@ -67,14 +67,29 @@ function sseStream(res: Response, pick: (json: unknown) => string | null, abort:
   const dec = new TextDecoder();
   let buf = "";
   return new ReadableStream<Uint8Array>({
+    // IMPORTANT: pull() must enqueue at least one chunk (or close) before resolving.
+    // Providers send non-text events first (Anthropic: message_start, content_block_start, ping);
+    // a pull() that resolves without enqueueing is never called again and the response hangs forever.
     async pull(c) {
-      const idle = setTimeout(() => abort.abort(), IDLE_TIMEOUT);
-      try {
-        const { done, value } = await reader.read();
-        if (done) return c.close();
-        buf += dec.decode(value, { stream: true });
+      for (;;) {
+        const idle = setTimeout(() => abort.abort(), IDLE_TIMEOUT);
+        let chunk: ReadableStreamReadResult<Uint8Array>;
+        try {
+          chunk = await reader.read();
+        } catch {
+          c.close();
+          return;
+        } finally {
+          clearTimeout(idle);
+        }
+        if (chunk.done) {
+          c.close();
+          return;
+        }
+        buf += dec.decode(chunk.value, { stream: true });
         const lines = buf.split("\n");
         buf = lines.pop() ?? "";
+        let pushed = false;
         for (const line of lines) {
           const l = line.trim();
           if (!l.startsWith("data:")) continue;
@@ -82,15 +97,15 @@ function sseStream(res: Response, pick: (json: unknown) => string | null, abort:
           if (!data || data === "[DONE]") continue;
           try {
             const t = pick(JSON.parse(data));
-            if (t) c.enqueue(enc.encode(t));
+            if (t) {
+              c.enqueue(enc.encode(t));
+              pushed = true;
+            }
           } catch {
             /* ignore keep-alives */
           }
         }
-      } catch {
-        c.close();
-      } finally {
-        clearTimeout(idle);
+        if (pushed) return;
       }
     },
     cancel() {
@@ -104,7 +119,7 @@ async function callProvider(system: string, messages: Msg[], stream: boolean, ma
   const timer = setTimeout(() => abort.abort(), stream ? HEADERS_TIMEOUT : 25_000);
   try {
     if (provider() === "anthropic") {
-      return await fetch("https://api.anthropic.com/v1/messages", {
+      return await fetch(`${(env("ANTHROPIC_BASE_URL") || "https://api.anthropic.com").replace(/\/$/, "")}/v1/messages`, {
         method: "POST",
         signal: abort.signal,
         headers: { "x-api-key": env("ANTHROPIC_API_KEY"), "anthropic-version": "2023-06-01", "content-type": "application/json" },
@@ -128,6 +143,12 @@ async function callProvider(system: string, messages: Msg[], stream: boolean, ma
     clearTimeout(timer);
   }
 }
+
+const pickAnthropic = (j: unknown) => {
+  const e = j as { type?: string; delta?: { type?: string; text?: string } };
+  return e.type === "content_block_delta" && e.delta?.type === "text_delta" ? e.delta.text ?? null : null;
+};
+const pickOpenAI = (j: unknown) => (j as { choices?: { delta?: { content?: string } }[] }).choices?.[0]?.delta?.content ?? null;
 
 const headers = (mode: string, extra: Record<string, string> = {}) => ({
   "content-type": "text/plain; charset=utf-8",
@@ -156,12 +177,13 @@ export async function POST(req: Request) {
     if (prov && !limited(ip)) {
       try {
         const transcript = messages.map((m) => `${m.role === "user" ? "მომხმარებელი" : "ვალიკო"}: ${m.content}`).join("\n");
-        const res = await callProvider(LEAD_PROMPT, [{ role: "user", content: transcript }], false, 500, new AbortController());
+        const res = await callProvider(LEAD_PROMPT, [{ role: "user", content: transcript }], false, 1500, new AbortController());
         if (res.ok) {
           const j = await res.json();
           const text: string = j?.content?.[0]?.text ?? j?.choices?.[0]?.message?.content ?? "";
           const m = text.match(/\{[\s\S]*\}/);
           if (m) return Response.json({ ...JSON.parse(m[0]), source: "ai" });
+          console.error("valiko lead: no JSON in answer", text.slice(0, 200));
         } else console.error("valiko lead:", res.status, (await res.text().catch(() => "")).slice(0, 300));
       } catch (e) {
         console.error("valiko lead: provider error", e);
@@ -177,14 +199,7 @@ export async function POST(req: Request) {
   try {
     const res = await callProvider(systemPrompt(brand), messages, true, 700, abort);
     if (res.ok && res.body) {
-      const pick =
-        prov === "anthropic"
-          ? (j: unknown) => {
-              const e = j as { type?: string; delta?: { type?: string; text?: string } };
-              return e.type === "content_block_delta" && e.delta?.type === "text_delta" ? e.delta.text ?? null : null;
-            }
-          : (j: unknown) => (j as { choices?: { delta?: { content?: string } }[] }).choices?.[0]?.delta?.content ?? null;
-      return new Response(sseStream(res, pick, abort), { headers: headers("ai") });
+      return new Response(sseStream(res, prov === "anthropic" ? pickAnthropic : pickOpenAI, abort), { headers: headers("ai") });
     }
     const detail = (await res.text().catch(() => "")).slice(0, 300);
     console.error(`valiko: ${prov} HTTP ${res.status}`, detail);
@@ -244,6 +259,30 @@ export async function GET(req: Request) {
       out.api = { status: res.status, ms: Date.now() - t0, ok: res.ok, body: text.slice(0, 400) };
     } catch (e) {
       out.api = { ok: false, ms: Date.now() - t0, error: abort.signal.aborted ? "no answer within 25s" : String((e as Error)?.cause ?? e) };
+    }
+    // the real chat path: full catalog prompt + streaming, read through the same parser the chat uses
+    const t1 = Date.now();
+    const abort2 = new AbortController();
+    try {
+      const res = await callProvider(systemPrompt("KVALI"), [{ role: "user", content: "გამარჯობა" }], true, 60, abort2);
+      const headersMs = Date.now() - t1;
+      if (!res.ok || !res.body) {
+        out.chat = { ok: false, status: res.status, headersMs, body: (await res.text()).slice(0, 300) };
+      } else {
+        const r = sseStream(res, prov === "anthropic" ? pickAnthropic : pickOpenAI, abort2).getReader();
+        const first = await r.read();
+        const firstTextMs = Date.now() - t1;
+        let sample = first.done ? "" : new TextDecoder().decode(first.value);
+        for (let i = 0; i < 8; i++) {
+          const n = await r.read();
+          if (n.done) break;
+          sample += new TextDecoder().decode(n.value);
+        }
+        r.cancel().catch(() => {});
+        out.chat = { ok: !!sample, status: res.status, headersMs, firstTextMs, sample: sample.slice(0, 160) };
+      }
+    } catch (e) {
+      out.chat = { ok: false, ms: Date.now() - t1, error: abort2.signal.aborted ? "timeout" : String((e as Error)?.cause ?? e) };
     }
   }
   return Response.json(out, { headers: { "cache-control": "no-store" } });

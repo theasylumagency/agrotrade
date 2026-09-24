@@ -18,13 +18,14 @@ npm run build && npm start
 |---|---|
 | `ANTHROPIC_API_KEY` | Claude. მოდელი: `VALIKO_MODEL` (ნაგულისხმევი `claude-sonnet-5`) |
 | `OPENAI_API_KEY` | OpenAI-თავსებადი API. მოდელი: `OPENAI_MODEL`, მისამართი: `OPENAI_BASE_URL` |
+| `ANTHROPIC_BASE_URL` | არასავალდებულო — Anthropic API-ს ალტერნატიული მისამართი (პროქსი/ტესტი) |
 | `NEXT_PUBLIC_SITE_URL` | საჯარო მისამართი (ბმულის preview სურათისთვის), მაგ. `https://agro.asylum.agency` |
 
 პასუხის header `x-valiko: ai` ნიშნავს ნამდვილ AI-ს, `offline` — ჩაშენებულ მრჩეველს; მიზეზი ჩანს `x-valiko-reason`-ში (`no-key`, `http-401`, `timeout`, `network`…). თუ პროვაიდერი 12 წამში არ პასუხობს, ვალიკო ავტომატურად offline რეჟიმზე გადადის — ჩატი აღარ „იჭედება“. ერთ IP-ზე ლიმიტი: 40 მოთხოვნა / 10 წთ.
 
 ### დიაგნოსტიკა
 
-გახსენით `/api/valiko?diag=1` (ლოკალურად `http://localhost:3000/api/valiko?diag=1`). ჩანს: ხედავს თუ არა სერვერი გასაღებს (მხოლოდ სიგრძე და პრეფიქსი), Node-ის ვერსია, DNS და TCP კავშირი `api.anthropic.com`-თან IPv4/IPv6-ზე და სატესტო მოთხოვნის პასუხი. გასაღები არასდროს ჩანს სრულად.
+გახსენით `/api/valiko?diag=1` (ლოკალურად `http://localhost:3000/api/valiko?diag=1`). ჩანს: ხედავს თუ არა სერვერი გასაღებს (მხოლოდ სიგრძე და პრეფიქსი), Node-ის ვერსია, DNS და TCP კავშირი `api.anthropic.com`-თან IPv4/IPv6-ზე, მოკლე სატესტო მოთხოვნა (`api`) და ნამდვილი ჩატის გზა — სრული კატალოგით და სტრიმინგით (`chat`: `headersMs`, `firstTextMs`, `sample`). გასაღები არასდროს ჩანს სრულად.
 
 - `provider: none` → პროცესი ცვლადს ვერ ხედავს (ფაილი `.env.local` პროექტის ძირშია? სერვერი გადაიტვირთა? pm2/systemd-ის შემთხვევაში env იქ უნდა იყოს).
 - `api.status: 401` → გასაღები არასწორია; `400` + credit → ბალანსი; `404` → მოდელის სახელი (`VALIKO_MODEL`).
