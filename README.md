@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# აგრო თრეიდი × ASILUMI — ვებ-შეთავაზება (v2)
 
-## Getting Started
+კომერციული შეთავაზება, რომელიც თავად არის მომუშავე პროტოტიპი: აგრო თრეიდის 217 რეალური პროდუქტი, ახალი ვიტრინა 3 სამუშაო ბრენდით + აგრო თრეიდის ვიტრინა, „ერთი ძრავი — ორი მაღაზია“ დემო და ცოცხალი AI კონსულტანტი ვალიკო.
 
-First, run the development server:
+## გაშვება
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
+npm run build && npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## ვალიკო AI — გარემოს ცვლადები
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+ვალიკო `/api/valiko`-ზე მუშაობს. გასაღების გარეშეც მუშაობს (ჩაშენებული offline მრჩეველი), მაგრამ ნამდვილი AI-სთვის Vercel-ში (ან `.env.local`-ში) დაამატეთ **ერთ-ერთი**:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| ცვლადი | აღწერა |
+|---|---|
+| `ANTHROPIC_API_KEY` | Claude. მოდელი: `VALIKO_MODEL` (ნაგულისხმევი `claude-sonnet-5`) |
+| `OPENAI_API_KEY` | OpenAI-თავსებადი API. მოდელი: `OPENAI_MODEL`, მისამართი: `OPENAI_BASE_URL` |
+| `NEXT_PUBLIC_SITE_URL` | საჯარო მისამართი (ბმულის preview სურათისთვის), მაგ. `https://agro.asylum.agency` |
 
-## Learn More
+პასუხის header `x-valiko: ai` ნიშნავს ნამდვილ AI-ს, `offline` — ჩაშენებულ მრჩეველს (გასაღები არ არის ან პროვაიდერმა შეცდომა დააბრუნა). ერთ IP-ზე ლიმიტი: 40 მოთხოვნა / 10 წთ.
 
-To learn more about Next.js, take a look at the following resources:
+## კატალოგის განახლება
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+წყარო: `data/agro-trade-catalog.zip` (agro-trade.ge-ის საჯარო WooCommerce Store API, 24.09.2026 — 217 პროდუქტი + ფოტოები).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+unzip data/agro-trade-catalog.zip -d /tmp/cat
+python3 scripts/build-catalog.py /tmp/cat/catalog.json src/data   # → src/data/catalog.json, src/data/xray.json
+node scripts/build-images.mjs /tmp/cat/images                       # → public/catalog/{s,m}/*.webp
+```
 
-## Deploy on Vercel
+## სტრუქტურა
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `src/app/page.tsx` — სექციები და ტექსტები (ინვესტიცია, საკუთრება, მოთხოვნები)
+- `src/components/` — HeroField (WebGL ველი), CatalogAssembly, Storefront, EngineDemo, Valiko, Roadmap
+- `src/lib/brands.ts` — GUTANI / KVALI / MITSA / AGRO TRADE თემები
+- `src/lib/valiko/` — ვალიკოს სისტემური ინსტრუქცია, კატალოგის ცოდნა და offline მრჩეველი
+- `docs/Agro_Trade_Commercial_Proposal_v3.pdf` — PDF ვერსია საკუთრების ბლოკით (წყარო: `docs/pdf-source/`)
+- `archive/v1-2026-09-24/` — წინა ვებ-ვერსია, უცვლელად
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+ფონტები თვითჰოსტინგზეა (`public/fonts`, SIL OFL 1.1). გვერდი `noindex`-ია.
