@@ -3,6 +3,7 @@ import CatalogAssembly from "@/components/CatalogAssembly";
 import Storefront from "@/components/Storefront";
 import EngineDemo from "@/components/EngineDemo";
 import Valiko from "@/components/Valiko";
+import ValikoStory from "@/components/ValikoStory";
 import Roadmap from "@/components/Roadmap";
 import { ProposalProvider } from "@/components/ProposalContext";
 import { CountUp, Header, RevealRoot } from "@/components/Chrome";
@@ -58,7 +59,7 @@ export default function Home() {
             <p className="hero-sub">ეს არ არის პრეზენტაცია. ქვემოთ არის მომუშავე პროტოტიპი თქვენი 217 რეალური პროდუქტით — ახალი ვიტრინა, ერთი ძრავი ორი ბრენდისთვის და AI კონსულტანტი, რომელსაც ახლავე შეგიძლიათ ჰკითხოთ.</p>
             <div className="hero-actions">
               <a className="btn" href="#store">გახსენით მაღაზია <span>→</span></a>
-              <a className="btn ghost" href="#valiko">ჰკითხეთ ვალიკოს</a>
+              <a className="btn ghost" href="#valiko-chat">ჰკითხეთ ვალიკოს</a>
             </div>
           </div>
           <div className="hero-foot wrap">
@@ -76,6 +77,7 @@ export default function Home() {
         <CatalogAssembly />
         <Storefront />
         <EngineDemo />
+        <ValikoStory />
         <Valiko />
         <Roadmap />
 
@@ -127,7 +129,7 @@ export default function Home() {
 
             <div className="monthly" data-reveal>
               <div className="mo-head">
-                <span className="kicker">ვალიკო AI · ახალი ბრენდის მარკეტინგული მიმართულება</span>
+                <span className="kicker">ვალიკო AI · ინფლუენსერი და ახალი ბრენდის მარკეტინგი</span>
                 <h3><CountUp to={5500} /> ₾ <small>/ თვე · 6 თვე</small></h3>
                 <p>თვიური საერთო ბიუჯეტი. პირველ სამ თვეში მეტი რესურსი მიდის არხის შექმნასა და წარმოებაზე, შემდეგ სამში — რეკლამისა და ზრდის მასშტაბირებაზე.</p>
               </div>

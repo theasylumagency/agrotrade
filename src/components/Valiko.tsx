@@ -108,24 +108,16 @@ export default function Valiko() {
   const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 
   return (
-    <section className="valiko-section" id="valiko" ref={secRef}>
+    <section className="valiko-section" id="valiko-chat" ref={secRef}>
       <div className="wrap valiko-grid">
         <div className="valiko-side" data-reveal>
-          <span className="kicker">05 / ვალიკო AI — ცოცხლად</span>
+          <span className="kicker">05 / ვალიკო — ცოცხლად · როლი 03</span>
           <h2 className="display">ჰკითხეთ<br /><em>ვალიკოს.</em></h2>
           <p className="lead">ეს არ არის წინასწარ დაწერილი სცენარი. ვალიკო იცნობს აგრო თრეიდის 217-ვე პროდუქტს — ფასს, სიმძლავრეს, მარაგს, განვადებას და მაღაზიებს. დაუსვით ნებისმიერი კითხვა, ისე როგორც თქვენი მყიდველი დაუსვამდა.</p>
-          <div className="valiko-card">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/valiko-concept.webp" alt="ვალიკო AI — პერსონაჟის ვიზუალური კონცეფცია" />
-            <div>
-              <b>ვალიკო</b>
-              <span><i className="live" /> AI აგრო-მრჩეველი · {brand.latin}</span>
-            </div>
-          </div>
           <ul className="valiko-roles">
-            <li><b>საკუთარი არხები</b><span>Facebook და TikTok — ხსნის, ადარებს, აგროვებს აუდიტორიას.</span></li>
-            <li><b>გაყიდვების გვერდები</b><span>ახალი ბრენდის ექსპერტი ლენდინგებსა და კამპანიებში.</span></li>
-            <li><b>ჩატი 24/7</b><span>არჩევაში ეხმარება და მზა ლიდს გადასცემს გაყიდვების გუნდს.</span></li>
+            <li><b>არჩევს</b><span>ფართობის, სამუშაოს და ბიუჯეტის მიხედვით — მხოლოდ კატალოგიდან.</span></li>
+            <li><b>ითვლის</b><span>განვადებას — საქართველოს ბანკი, თიბისი, კრედო.</span></li>
+            <li><b>გადასცემს</b><span>მზა ლიდს გაყიდვების გუნდს — ორი კითხვის შემდეგ სცადეთ ღილაკი.</span></li>
           </ul>
         </div>
 
@@ -166,27 +158,6 @@ export default function Valiko() {
         </div>
       </div>
 
-      <div className="wrap reels" data-reveal>
-        <div className="reels-head">
-          <span className="kicker">ვალიკოს არხები · კონტენტის კონცეფცია</span>
-          <p>8–12 მოკლე ვიდეო თვეში. ვალიკო ხსნის, ადარებს და აჩვენებს — გაყიდვა მოდის ნდობიდან.</p>
-        </div>
-        <div className="reels-row">
-          {[
-            { id: 8816, hook: "7 თუ 9 ცხენის ძალა?", sub: "30 წამში აგიხსნი, რატომ არ უნდა გადაიხადო ზედმეტი." },
-            { id: 8806, hook: "დიზელი თუ ბენზინი?", sub: "1 ჰექტარზე მეტზე — ვალიკოს პასუხი და გამოთვლა." },
-            { id: 7196, hook: "სიმინდი → ფქვილი. სახლში.", sub: "რამდენ ხანში ამოიღებს ფულს წისქვილი?" },
-          ].map((r) => (
-            <div className="reel" key={r.id}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imgS(r.id).replace("/s/", "/m/")} alt="" loading="lazy" />
-              <div className="reel-top"><span>@valiko.ai</span><em>კონცეფცია</em></div>
-              <div className="reel-bottom"><b>{r.hook}</b><span>{r.sub}</span></div>
-              <div className="reel-side" aria-hidden="true"><i>♥</i><i>✎</i><i>↗</i></div>
-            </div>
-          ))}
-        </div>
-      </div>
     </section>
   );
 }
